@@ -1,8 +1,11 @@
 # Báo Cáo Nhóm — Lab 7: Embedding & Vector Store
 
-**Nhóm:** [Tên nhóm]
-**Thành viên:** [Họ tên từng thành viên]
-**Ngày:** [Ngày nộp]
+**Nhóm:** G27-E403
+**Thành viên:**
+- 2A202601680 - Tô Minh Quân
+- 2A202601018 - Sái Hồng Anh
+- 2A202601852 - Lê Khả Chính
+**Ngày nộp:** 03/08/2026
 
 > **Nộp 1 bản / nhóm.** Phần cá nhân (hướng tiếp cận, kết quả riêng, dự đoán…) mỗi thành viên nộp riêng trong `REPORT_CANHAN.md`. Chi tiết thang điểm: `docs/SCORING.md`.
 
