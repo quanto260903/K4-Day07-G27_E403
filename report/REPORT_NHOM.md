@@ -74,36 +74,31 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 ### Chiến lược của từng thành viên
 
-> Mỗi thành viên điền một khối dưới đây (copy thêm nếu nhóm có nhiều hơn 3 người).
+**Thành viên 1 — Tô Minh Quân**
+- **Loại chiến lược:** `SentenceChunker(max_sentences_per_chunk=3)`
+- **Mô tả & lý do chọn:** Quân tập trung vào việc giữ câu nguyên vẹn vì dữ liệu chính sách TMĐT thường chứa các điều kiện và ngoại lệ trong cùng một câu. Cách chia theo câu giúp tránh lỗi cắt ngang câu như fixed-size, phù hợp cho các câu hỏi cần đọc đầy đủ điều kiện ("trong bao lâu", "trường hợp nào", "ai chịu phí"). Điểm yếu là nếu văn bản có câu rất dài hoặc một đoạn chứa nhiều chủ đề, chunk có thể quá dài và làm nhiễu retrieval.
+- **Code snippet (nếu custom):** Không dùng custom; dùng `SentenceChunker` đã triển khai trong `src/chunking.py`.
 
-**Thành viên 1 — [Tên]**
-- **Loại chiến lược:** [FixedSize / Sentence / Recursive / custom]
-- **Mô tả & lý do chọn cho chủ đề này:** *(2-3 câu)*
-- **Code snippet (nếu custom):**
-```python
-# Dán mã nguồn (implementation) vào đây
-```
+**Thành viên 2 — Sái Hồng Anh**
+- **Loại chiến lược:** `FixedSizeChunker(chunk_size=500, overlap=50)`
+- **Mô tả & lý do chọn:** Anh dùng chiến lược fixed-size làm baseline chắc chắn vì nó kiểm soát tốt độ dài chunk, có overlap để giữ một phần ngữ cảnh ở ranh giới. Với corpus hiện tại chỉ có 6 tài liệu ngắn, fixed-size tạo số chunk vừa phải (30 chunk) và trong đánh giá bằng `_mock_embed` đạt kết quả top-3 tốt nhất. Điểm yếu là vẫn có thể cắt ngang câu, heading hoặc bullet list nếu nội dung dài.
+- **Code snippet (nếu custom):** Không dùng custom; dùng `FixedSizeChunker` có sẵn.
 
-**Thành viên 2 — [Tên]**
-- **Loại chiến lược:**
-- **Mô tả & lý do chọn:**
-- **Code snippet (nếu custom):**
-
-**Thành viên 3 — [Tên]**
-- **Loại chiến lược:**
-- **Mô tả & lý do chọn:**
-- **Code snippet (nếu custom):**
+**Thành viên 3 — Lê Khả Chính**
+- **Loại chiến lược:** `RecursiveChunker(chunk_size=500)`
+- **Mô tả & lý do chọn:** Chính ưu tiên recursive chunking vì tài liệu Shopee/Tiki có heading, đoạn văn và danh sách gạch đầu dòng. Chiến lược này thử tách theo `\n\n`, `\n`, `. `, khoảng trắng rồi mới cắt cứng, nên giữ cấu trúc mục chính sách tốt hơn fixed-size. Điểm yếu là với mock embedder, nhiều chunk ngắn theo heading/list có thể làm kết quả bị lệch nếu câu hỏi và chunk không trùng từ khóa đủ mạnh.
+- **Code snippet (nếu custom):** Không dùng custom; dùng `RecursiveChunker` đã triển khai trong `src/chunking.py`.
 
 ### So Sánh Giữa Các Thành Viên
 
 | Thành viên | Chiến lược (Strategy) | Điểm truy xuất (/10) | Điểm mạnh | Điểm yếu |
 |-----------|----------|----------------------|-----------|----------|
-| | | | | |
-| | | | | |
-| | | | | |
+| Tô Minh Quân | `SentenceChunker(max_sentences_per_chunk=3)` | 6 / 10 | Giữ câu đầy đủ, tránh cắt ngang điều kiện/chính sách; dễ đọc khi agent đưa context vào prompt. | Chunk dài không đều; với tài liệu có câu dài, một chunk có thể chứa nhiều chủ đề và làm giảm độ chính xác top-1. |
+| Sái Hồng Anh | `FixedSizeChunker(chunk_size=500, overlap=50)` | 8 / 10 | Độ dài ổn định, số chunk vừa phải, overlap giúp không mất hoàn toàn ngữ cảnh tại ranh giới; kết quả top-3 tốt nhất trong thử nghiệm mock. | Có thể cắt giữa câu, bullet hoặc heading; kém tự nhiên nếu dùng để trích dẫn trực tiếp. |
+| Lê Khả Chính | `RecursiveChunker(chunk_size=500)` | 6 / 10 | Tôn trọng cấu trúc tài liệu như heading, đoạn văn, dòng liệt kê; phù hợp với FAQ/chính sách có bố cục rõ. | Có thể tạo nhiều chunk ngắn; với `_mock_embed`, retrieval dễ bị nhiễu vì mock không hiểu ngữ nghĩa thật. |
 
 **Chiến lược nào tốt nhất cho chủ đề này? Tại sao?**
-> *Viết 2-3 câu — đây là phần được đánh giá cao nhất (khả năng suy nghĩ & giải thích):*
+> Trong lần chạy hiện tại với `_mock_embed`, `FixedSizeChunker(chunk_size=500, overlap=50)` cho điểm top-3 cao nhất (8/10), nên nhóm chọn đây là baseline thực nghiệm tốt nhất cho mã nguồn hiện tại. Tuy nhiên, xét về chất lượng ngữ cảnh thật, `RecursiveChunker` vẫn có tiềm năng tốt hơn cho tài liệu chính sách vì giữ được heading và bullet list; nhóm cần chạy lại bằng `EMBEDDING_PROVIDER=local` để đánh giá ngữ nghĩa thật thay vì dựa hoàn toàn vào mock embeddings. Kết luận thực tế của nhóm là: fixed-size tốt để đảm bảo pipeline ổn định, còn recursive/sentence tốt hơn khi ưu tiên khả năng đọc và grounding của câu trả lời.
 
 ---
 
@@ -129,27 +124,29 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | # | Câu hỏi | Chiến lược tốt nhất cho câu này | Có chunk liên quan trong top-3? | Ghi chú |
 |---|---------|-------------------------------|-------------------------------|---------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
+| 1 | Người mua cần gửi yêu cầu trả hàng trong bao lâu sau khi nhận hàng thông thường? | `FixedSizeChunker` và `SentenceChunker` | Có | Cả fixed và sentence đưa `shopee-return-refund-policy` lên top-1; sentence có score cao hơn (0.2796) nhưng fixed vẫn ổn định. |
+| 2 | Người bán không được đăng bán những loại sản phẩm nào theo quy định của Shopee? | `FixedSizeChunker` | Có | Khi dùng `metadata_filter={"customer_role": "seller"}`, fixed đưa `shopee-seller-listing-rules` lên top-1; sentence cũng top-1, recursive đưa đúng doc ở rank 2. |
+| 3 | Shopee hỗ trợ những phương thức thanh toán nào cho người mua? | `FixedSizeChunker` | Có | Fixed có `shopee-payment-methods` trong top-3 ở rank 2; sentence và recursive bị lệch sang shipping/listing khi dùng mock embedder. |
+| 4 | Nếu hàng bị hư hỏng khi vận chuyển nhưng không phải lỗi của người mua, ai chịu chi phí vận chuyển hoàn trả? | `FixedSizeChunker` và `RecursiveChunker` | Có | Fixed đưa `shopee-return-refund-policy` ở rank 2; recursive đưa đúng doc ở rank 3. Sentence bị lệch sang payment. |
+| 5 | Tiki lưu trữ thông tin cá nhân của khách hàng trong bao lâu? | `SentenceChunker` và `RecursiveChunker` | Có | Sentence và recursive có `tiki-privacy-policy` trong top-3 ở rank 2; fixed không tìm được đúng doc trong top-3 với mock embedder. |
 
 **Lọc bằng metadata có giúp ích không? Ở câu hỏi nào?**
-> *Viết 2-3 câu:*
+> Metadata filtering giúp rõ nhất ở câu 2, vì câu hỏi dành cho người bán dễ bị nhiễu bởi các tài liệu cùng nhắc đến "sản phẩm", "quy định" hoặc "người mua". Khi lọc `customer_role=seller`, tập ứng viên giảm còn các tài liệu liên quan đến người bán, nhờ đó `shopee-seller-listing-rules` xuất hiện trong top-3 cho cả ba chiến lược. Nhóm đánh giá metadata là bắt buộc nếu corpus mở rộng thêm nhiều chính sách cùng chủ đề nhưng khác đối tượng sử dụng.
 
 ---
 
 ## 4. Thuyết trình (Demo) & Bài học nhóm — Nhóm (5 điểm)
 
 **Những phân tích (insights) hay nhất nhóm sẽ trình bày:**
-> *Liệt kê 2-3 ý:*
+- Dữ liệu chính sách TMĐT không chỉ cần "nhiều tài liệu" mà cần metadata rõ (`customer_role`, `category`, `source_url`, `document_version`) để truy xuất đúng đối tượng và đúng phiên bản chính sách.
+- `FixedSizeChunker` đạt điểm top-3 cao nhất trong thử nghiệm hiện tại (8/10), nhưng không phải lúc nào cũng tốt nhất về mặt ngữ cảnh vì có thể cắt ngang câu/bullet. `SentenceChunker` và `RecursiveChunker` giữ ngữ cảnh tự nhiên hơn nhưng phụ thuộc mạnh vào chất lượng embedding.
+- `_mock_embed` phù hợp để kiểm thử pipeline và unit tests, nhưng không nên dùng để kết luận chất lượng semantic retrieval. Kết quả một số câu bị lệch dù doc liên quan có trong corpus cho thấy cần chạy lại bằng local/OpenAI embeddings.
 
 **Bài học rút ra khi so sánh trong nhóm:**
-> *Viết 2-3 câu — cùng tài liệu nhưng chiến lược khác nhau dẫn tới khác biệt gì?*
+> Cùng một bộ tài liệu nhưng chiến lược chunking khác nhau tạo ra tập ứng viên rất khác nhau: fixed-size ổn định về số lượng và độ dài, sentence giữ câu đầy đủ, recursive giữ cấu trúc heading/list tốt hơn. Metadata filtering đặc biệt hữu ích khi câu hỏi có vai trò rõ ràng như người mua/người bán. Nhóm cũng học được rằng điểm retrieval không chỉ phụ thuộc vào code đúng, mà còn phụ thuộc vào dữ liệu sạch, chunk có coherence, và embedding backend có hiểu ngữ nghĩa hay không.
 
 **Nếu làm lại, nhóm sẽ thay đổi gì trong chiến lược dữ liệu (data strategy)?**
-> *Viết 2-3 câu:*
+> Nhóm sẽ mở rộng corpus lên đủ 8-10 tài liệu chính sách chính thức, đồng thời làm sạch nội dung để loại bỏ phần navigation/template không liên quan trước khi ingest. Nhóm cũng sẽ chuẩn hóa metadata theo schema cố định và thêm trường `platform` (`shopee`, `tiki`) để lọc tốt hơn khi câu hỏi nêu rõ sàn TMĐT. Về đánh giá, nhóm sẽ chạy benchmark bằng `EMBEDDING_PROVIDER=local` để kết quả phản ánh ngữ nghĩa thật hơn so với `_mock_embed`.
 
 ---
 
@@ -157,8 +154,8 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 
 | Tiêu chí | Điểm tự đánh giá |
 |----------|-------------------|
-| Lựa chọn tài liệu (Document Set Quality) | / 10 |
-| Thiết kế chiến lược (Strategy Design) | / 15 |
-| Chất lượng truy xuất (Retrieval Quality) | / 10 |
-| Thuyết trình (Demo) | / 5 |
-| **Tổng phần nhóm** | **/ 40** |
+| Lựa chọn tài liệu (Document Set Quality) | 9 / 10 |
+| Thiết kế chiến lược (Strategy Design) | 14 / 15 |
+| Chất lượng truy xuất (Retrieval Quality) | 8 / 10 |
+| Thuyết trình (Demo) | 4 / 5 |
+| **Tổng phần nhóm** | **35 / 40** |
